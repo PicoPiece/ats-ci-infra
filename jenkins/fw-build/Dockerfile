@@ -37,9 +37,6 @@ RUN mkdir -p /opt/esp && \
 RUN cd /opt/esp/idf && \
     ./install.sh esp32
 
-# Fix git safe.directory warning for jenkins user
-RUN git config --global --add safe.directory /opt/esp/idf
-
 # Copy ESP-IDF tools to jenkins user home
 RUN mkdir -p /home/jenkins/.espressif && \
     cp -r /root/.espressif/* /home/jenkins/.espressif/ && \
@@ -52,7 +49,9 @@ ENV PATH="/opt/esp/idf/tools:$PATH"
 RUN echo 'source /opt/esp/idf/export.sh' >> /home/jenkins/.bashrc && \
     echo 'export IDF_PATH=/opt/esp/idf' >> /home/jenkins/.bashrc
 
+# Switch to jenkins user and configure git
 USER jenkins
+RUN git config --global --add safe.directory /opt/esp/idf
 
 WORKDIR /home/jenkins/agent
 
