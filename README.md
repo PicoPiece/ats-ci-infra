@@ -10,6 +10,12 @@ ats-ci-infra/
 │   └── prometheus.yml
 └── grafana/
     └── dashboards/
+
+## Relationship to Other Repositories
+This infrastructure is designed to:
+- Build firmware from `ats-fw-esp32-demo`
+- Dispatch artifacts to `ats-ats-node`
+- Visualize results described in `ats-platform-docs`
     
 # ATS CI Infrastructure
 Overview
