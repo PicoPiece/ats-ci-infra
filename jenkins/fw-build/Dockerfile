@@ -29,11 +29,16 @@ RUN apt-get update && apt-get install -y \
 # Install ESP-IDF
 RUN mkdir -p /opt/esp && \
     cd /opt/esp && \
-    git clone --depth 1 -b v5.2 https://github.com/espressif/esp-idf.git idf
+    git clone --depth 1 -b v5.2 https://github.com/espressif/esp-idf.git idf && \
+    cd idf && \
+    git submodule update --init --recursive
 
 # Install ESP-IDF Python environment as root (tools go to /root/.espressif)
 RUN cd /opt/esp/idf && \
     ./install.sh esp32
+
+# Fix git safe.directory warning for jenkins user
+RUN git config --global --add safe.directory /opt/esp/idf
 
 # Copy ESP-IDF tools to jenkins user home
 RUN mkdir -p /home/jenkins/.espressif && \
