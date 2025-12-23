@@ -1,0 +1,25 @@
+# Jenkins home directory (volume data)
+jenkins/jenkins_home/
+
+# Temporary scripts and guides (not needed in repo)
+check_*.sh
+setup_*.sh
+*_GUIDE.md
+*_SUMMARY.md
+QUICK_START.md
+SETUP_*.md
+
+# Old Dockerfile (replaced by jenkins/fw-build/Dockerfile)
+Dockerfile.fw-build
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
