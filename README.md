@@ -12,10 +12,18 @@ ats-ci-infra/
     └── dashboards/
 
 ## Relationship to Other Repositories
+This infrastructure supports the overall ATS platform by:
+- Building firmware from `ats-fw-esp32-demo`
+- Dispatching build artifacts to `ats-node` for hardware testing
+- Collecting and visualizing test metrics defined in `ats-platform-docs`
+
+
+## Relationship to Other Repositories
 This infrastructure is designed to:
 - Build firmware from `ats-fw-esp32-demo`
 - Dispatch artifacts to `ats-ats-node`
 - Visualize results described in `ats-platform-docs`
+
     
 # ATS CI Infrastructure
 Overview
