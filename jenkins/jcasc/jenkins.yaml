@@ -1,0 +1,92 @@
+jenkins:
+  systemMessage: "ATS CI/CD Infrastructure - Multi-Platform Firmware Build System"
+
+unclassified:
+  location:
+    adminAddress: "admin@ats-ci.local"
+    url: "http://localhost:8080/"
+
+tool:
+  git:
+    installations:
+      - name: "Default"
+        home: "git"
+
+# Seed job to create folders and jobs using Job DSL
+# This job will read the Job DSL script and create all folders/jobs
+jobs:
+  - script: |
+      // Create folders structure
+      folder('platforms') {
+        displayName('Platforms')
+        description('Platform-specific build and test pipelines')
+      }
+      
+      folder('platforms/ESP32') {
+        displayName('ESP32')
+        description('ESP32 firmware build and test pipelines')
+      }
+      
+      folder('platforms/RaspberryPi') {
+        displayName('Raspberry Pi')
+        description('Raspberry Pi image build and test pipelines')
+      }
+      
+      folder('platforms/nRF52') {
+        displayName('nRF52')
+        description('nRF52 firmware build and test pipelines')
+      }
+      
+      // ESP32 Build Job
+      pipelineJob('platforms/ESP32/ats-fw-esp32-demo') {
+        displayName('ESP32 Firmware Build')
+        description('Build ESP32 firmware from source')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  // TODO: Update with your actual Git repo URL
+                  url('https://github.com/PicoPiece/ats-fw-esp32-demo.git')
+                  credentials('')
+                }
+                branches('*/main')
+                scriptPath('platforms/ESP32/Jenkinsfile')
+              }
+            }
+          }
+        }
+        parameters {
+          stringParam('BRANCH_NAME', 'main', 'Git branch to build (e.g., main, develop, feature/xxx)')
+          booleanParam('TRIGGER_TEST', true, 'Trigger test pipeline after build completes')
+          stringParam('TAG_PREFIX', 'esp32-fw', 'Prefix for firmware tag (e.g., esp32-fw, v, release)')
+        }
+      }
+      
+      // ESP32 Test Job
+      pipelineJob('platforms/ESP32/ats-fw-esp32-demo-ESP32-test') {
+        displayName('ESP32 Firmware Test')
+        description('Test ESP32 firmware on ATS node')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  // TODO: Update with your actual Git repo URL
+                  url('https://github.com/your-org/ats-fw-esp32-demo.git')
+                  credentials('')
+                }
+                branches('*/main')
+                scriptPath('platforms/ESP32/Jenkinsfile.test')
+              }
+            }
+          }
+        }
+        parameters {
+          stringParam('BUILD_JOB_NAME', 'platforms/ESP32/ats-fw-esp32-demo', 'Name of the build job (with folder path)')
+          stringParam('BUILD_NUMBER', '', 'Build number of the firmware to test')
+          stringParam('FW_ARTIFACT', 'firmware-esp32.bin', 'Firmware artifact name')
+          stringParam('PLATFORM', 'ESP32', 'Platform name (ESP32, RaspberryPi, nRF52, ...)')
+          stringParam('ATS_NODE_LABEL', 'ats-node', 'Label for ATS node pool (e.g., ats-node, ats-pi-01)')
+        }
+      }
