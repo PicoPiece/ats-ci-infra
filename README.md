@@ -43,11 +43,12 @@ ats-ci-infra/
 
 This infrastructure follows a few strict rules:
 
-- **Jenkins orchestrates, not executes hardware**
-- **Hardware access lives only on ATS nodes**
+- **Jenkins orchestrates, not executes hardware** (Jenkins is "dumb and replaceable")
+- **Hardware access lives only on ATS nodes** (`ats-ats-node` owns all hardware interaction)
 - **Build environments are reproducible**
 - **Metrics and logs are first-class citizens**
 - **Scaling ATS capacity must not require CI redesign**
+- **Jenkins pipelines are simple** - they only fetch artifacts and run Docker containers
 
 The goal is reliability, debuggability, and clarity — not complexity.
 
@@ -75,9 +76,14 @@ The goal is reliability, debuggability, and clarity — not complexity.
 **Key responsibilities:**
 
 - Trigger firmware builds
-- Dispatch artifacts to ATS nodes
-- Collect test results
-- Enforce pipeline logic
+- Copy artifacts to ATS nodes (via workspace)
+- Run `ats-node-test` Docker container on ATS nodes
+- Archive test results
+- **Jenkins does NOT:**
+  - Detect USB ports
+  - Know about GPIO pins
+  - Execute flashing logic
+  - Run test scripts directly
 
 ### 2.2 Jenkins Build Agents
 
@@ -176,23 +182,43 @@ Xeon Server
 
 The Jenkins pipeline is structured into clear, isolated stages:
 
+### Build Pipeline (`Jenkinsfile`)
 1. **Source checkout**
 2. **Firmware build**
-3. **Artifact packaging**
-4. **Dispatch to ATS node**
-5. **Hardware test execution**
-6. **Result collection and reporting**
+3. **Artifact packaging** (firmware binary + `ats-manifest.yaml`)
+4. **Git tagging** (local tag for versioning)
+5. **Trigger test pipeline** (asynchronous, non-blocking)
+
+### Test Pipeline (`Jenkinsfile.test`)
+1. **Prepare workspace** (copy artifacts from build job, checkout test framework)
+2. **Build ATS node test container** (`ats-node-test` from `ats-ats-node`)
+3. **Run ATS tests** (single `docker run` command - container owns all hardware logic)
+4. **Archive results** (JUnit XML, summary JSON, logs)
 
 **Hardware tests always run on agents labeled `ats-node`.**
+**Jenkins is "dumb" - it only orchestrates Docker containers.**
 
 ### Test Pipeline Integration
 
-**Test pipelines consume artifacts and invoke `ats-test-esp32-demo` on ATS nodes.**
+**Test pipelines are simple and "dumb":**
 
-- Test pipelines do not run in the firmware repository
-- Test execution is handled by `ats-test-esp32-demo` framework
-- Artifacts are copied from build jobs to ATS nodes
-- Test results are reported back to Jenkins
+1. Copy artifacts (firmware binary + `ats-manifest.yaml`) from build job
+2. Checkout test framework (`ats-test-esp32-demo`)
+3. Build `ats-node-test` Docker container (from `ats-ats-node`)
+4. Run container - container handles:
+   - Manifest loading
+   - Firmware flashing
+   - Test runner invocation
+   - Result generation
+5. Archive results from `/results` directory
+
+**Jenkins does not know about:**
+- USB ports
+- GPIO pins
+- Test scripts
+- Hardware detection
+
+**All hardware logic lives in `ats-ats-node` Docker container.**
 
 ---
 
