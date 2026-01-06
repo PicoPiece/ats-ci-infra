@@ -30,7 +30,10 @@ Trên Raspberry Pi cần có:
    - **Click** `OK`
 
 5. **Cấu hình Node:**
-   - **Remote root directory**: `/home/pi/agent` (hoặc path bạn muốn)
+   - **Remote root directory**: `/home/jenkins` (phải khớp với directory được mount vào agent container)
+   -   **⚠️ QUAN TRỌNG**: Path này phải khớp với mount path trong container!
+   -   Jenkins sẽ tạo workspaces dưới path này trên **host filesystem**.
+   -   Docker containers có thể mount các host paths này.
    - **Labels**: `raspi-ats` (quan trọng - pipeline sẽ dùng label này)
    - **Usage**: `Only build jobs with label expressions matching this node`
    - **Launch method**: `Launch agent via Java Web Start` hoặc `Launch agent by connecting it to the master`
@@ -95,9 +98,14 @@ sudo usermod -aG docker pi
 ### 2. Tạo thư mục workspace
 
 ```bash
-mkdir -p /home/pi/agent
-chmod 755 /home/pi/agent
+# Create workspace directory on host
+mkdir -p /home/jenkins
+chmod 755 /home/jenkins
+# Set ownership for container user (UID 1000)
+sudo chown -R 1000:1000 /home/jenkins
 ```
+
+**⚠️ QUAN TRỌNG**: Directory này sẽ được mount vào agent container và phải match với "Remote root directory" trong Jenkins node config.
 
 ### 3. Chạy Jenkins Agent Container
 

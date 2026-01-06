@@ -25,8 +25,9 @@ if [ -z "$AGENT_SECRET" ]; then
 fi
 
 CONTAINER_NAME="jenkins-agent-${AGENT_NAME}"
-# Use current user's home directory for workspace, or allow override via JENKINS_WORKSPACE env var
-WORKSPACE_DIR="${JENKINS_WORKSPACE:-${HOME}/agent}"
+# Use /home/jenkins as default workspace (mounted into container)
+# This ensures Docker containers can access the same host paths
+WORKSPACE_DIR="${JENKINS_WORKSPACE:-/home/jenkins}"
 
 echo "🚀 Starting Jenkins Agent"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -56,6 +57,15 @@ fi
 echo "📁 Creating workspace directory: ${WORKSPACE_DIR}"
 mkdir -p "${WORKSPACE_DIR}"
 chmod 755 "${WORKSPACE_DIR}"
+# Set ownership to UID 1000 (jenkins user in container) if possible
+if [ -w "${WORKSPACE_DIR}" ]; then
+    chown 1000:1000 "${WORKSPACE_DIR}" 2>/dev/null || {
+        echo "⚠️  Warning: Could not change ownership of ${WORKSPACE_DIR}"
+        echo "   You may need to run: sudo chown -R 1000:1000 ${WORKSPACE_DIR}"
+    }
+fi
+echo "   This directory will be mounted into the agent container"
+echo "   ⚠️  IMPORTANT: Set Jenkins node 'Remote root directory' to: ${WORKSPACE_DIR}"
 
 # Check if jenkins/inbound-agent image exists
 if ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^jenkins/inbound-agent:latest$"; then
@@ -85,7 +95,7 @@ docker run -d --restart unless-stopped \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "${DOCKER_BIN}:/usr/bin/docker:ro" \
   ${DOCKER_GROUP_ADD} \
-  -v "${WORKSPACE_DIR}:/home/agent" \
+  -v "${WORKSPACE_DIR}:/home/jenkins/agent" \
   -v /dev:/dev \
   -v /sys/class/gpio:/sys/class/gpio:ro \
   -v /dev/gpiomem:/dev/gpiomem \
@@ -104,6 +114,14 @@ if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo ""
   echo "📋 Container status:"
   docker ps --filter "name=${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+  echo ""
+  echo "⚠️  CRITICAL: Configure Jenkins node settings:"
+  echo "   1. Go to Jenkins UI: Manage Jenkins -> Nodes -> ${AGENT_NAME}"
+  echo "   2. Set 'Remote root directory' to: ${WORKSPACE_DIR}"
+  echo "   3. Save configuration"
+  echo ""
+  echo "   This ensures Jenkins workspaces are created on the host filesystem,"
+  echo "   allowing Docker containers to mount the same paths."
   echo ""
   echo "📝 View logs:"
   echo "   docker logs -f ${CONTAINER_NAME}"
