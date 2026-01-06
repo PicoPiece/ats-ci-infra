@@ -30,6 +30,11 @@ ats-ci-infra/
 │   │   └── setup.sh
 │   └── fw-build/
 │       └── Dockerfile         # Custom build agent image
+├── provision/
+│   └── raspi-agent/          # Raspberry Pi agent setup
+│       ├── README.md         # Setup guide
+│       ├── start-agent.sh    # Agent startup script
+│       └── Jenkinsfile.example  # Example test pipeline
 ├── prometheus/
 │   └── prometheus.yml
 └── grafana/

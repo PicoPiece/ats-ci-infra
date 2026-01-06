@@ -1,0 +1,185 @@
+// Example Jenkins Pipeline for ATS Test Execution on Raspberry Pi
+// This is a sample pipeline that can be used as a reference
+// Copy this to your Jenkins job or use it as a template
+
+pipeline {
+    agent none
+
+    parameters {
+        string(
+            name: 'BUILD_JOB_NAME',
+            defaultValue: 'platforms/ESP32/ats-fw-esp32-demo',
+            description: 'Name of the build job that produced the firmware (with folder path)'
+        )
+        string(
+            name: 'BUILD_NUMBER',
+            defaultValue: '',
+            description: 'Build number of the firmware to test'
+        )
+        string(
+            name: 'ATS_NODE_TEST_IMAGE',
+            defaultValue: 'ats-node-test:latest',
+            description: 'Docker image name for ATS node test container'
+        )
+        choice(
+            name: 'IMAGE_SOURCE',
+            choices: ['registry', 'build'],
+            description: 'How to get ats-node-test image: pull from registry or build on agent'
+        )
+    }
+
+    environment {
+        WORKSPACE_DIR = "workspace"
+        RESULTS_DIR = "results"
+    }
+
+    stages {
+        stage('Prepare Workspace') {
+            agent { label 'master' }
+            steps {
+                script {
+                    if (!params.BUILD_NUMBER || params.BUILD_NUMBER == '') {
+                        error("BUILD_NUMBER parameter is required")
+                    }
+
+                    echo "📥 Copying firmware artifacts from ${params.BUILD_JOB_NAME} #${params.BUILD_NUMBER}"
+
+                    // Copy artifacts from build job
+                    copyArtifacts(
+                        projectName: params.BUILD_JOB_NAME,
+                        selector: specific(params.BUILD_NUMBER),
+                        filter: "*.bin,ats-manifest.yaml",
+                        target: WORKSPACE_DIR,
+                        flatten: true
+                    )
+
+                    // Stash artifacts for transfer to Pi agent
+                    dir(WORKSPACE_DIR) {
+                        stash name: 'fw-artifacts', includes: '**/*'
+                    }
+
+                    echo "✅ Artifacts prepared and stashed"
+                }
+            }
+        }
+
+        stage('Run ATS Tests on Raspberry Pi') {
+            agent { label 'raspi-ats' }  // This label must match Pi agent label
+            steps {
+                script {
+                    echo "🚀 [ATS] Running tests on Raspberry Pi"
+                    echo "📋 Image: ${params.ATS_NODE_TEST_IMAGE}"
+                    echo "📦 Image source: ${params.IMAGE_SOURCE}"
+
+                    // Unstash artifacts into agent workspace
+                    dir(WORKSPACE_DIR) {
+                        unstash 'fw-artifacts'
+                    }
+
+                    // Ensure Docker image is available
+                    script {
+                        if (params.IMAGE_SOURCE == 'registry') {
+                            // Option 1: Pull from registry
+                            echo "📥 Pulling image from registry..."
+                            sh """
+                                docker pull ${params.ATS_NODE_TEST_IMAGE} || {
+                                    echo "⚠️  Failed to pull image, trying to build locally..."
+                                    if [ -d ats-ats-node/docker/ats-node-test ]; then
+                                        docker build -t ${params.ATS_NODE_TEST_IMAGE} ats-ats-node/docker/ats-node-test
+                                    else
+                                        echo "❌ Cannot build image: ats-ats-node repo not found"
+                                        exit 1
+                                    fi
+                                }
+                            """
+                        } else {
+                            // Option 2: Build on agent
+                            echo "🔨 Building image on agent..."
+                            sh """
+                                # Checkout ats-ats-node repo if not present
+                                if [ ! -d ats-ats-node ]; then
+                                    echo "📦 Cloning ats-ats-node repository..."
+                                    git clone https://github.com/PicoPiece/ats-ats-node.git || {
+                                        echo "❌ Failed to clone ats-ats-node"
+                                        exit 1
+                                    }
+                                fi
+
+                                # Build image
+                                if [ -d ats-ats-node/docker/ats-node-test ]; then
+                                    docker build -t ${params.ATS_NODE_TEST_IMAGE} ats-ats-node/docker/ats-node-test
+                                else
+                                    echo "❌ Dockerfile not found: ats-ats-node/docker/ats-node-test"
+                                    exit 1
+                                fi
+                            """
+                        }
+                    }
+
+                    // Create results directory
+                    sh """
+                        mkdir -p ${RESULTS_DIR}
+                    """
+
+                    // Run ATS node test container
+                    dir(WORKSPACE_DIR) {
+                        sh """
+                            echo "🧪 [ATS] Running test execution container"
+                            echo "📋 Image: ${params.ATS_NODE_TEST_IMAGE}"
+                            echo "📁 Workspace: \$(pwd)"
+
+                            # Run ats-node-test container
+                            # Container will:
+                            # 1. Load manifest from /workspace/ats-manifest.yaml
+                            # 2. Flash firmware
+                            # 3. Run tests
+                            # 4. Write results to /workspace/results/
+                            docker run --rm --privileged \\
+                                -v /dev:/dev \\
+                                -v /sys/class/gpio:/sys/class/gpio:ro \\
+                                -v /dev/gpiomem:/dev/gpiomem \\
+                                -v \$(pwd):/workspace \\
+                                -e MANIFEST_PATH=/workspace/ats-manifest.yaml \\
+                                -e RESULTS_DIR=/workspace/${RESULTS_DIR} \\
+                                ${params.ATS_NODE_TEST_IMAGE}
+
+                            echo "✅ Test execution completed"
+                            echo "📊 Results:"
+                            ls -la ${RESULTS_DIR}/ || echo "   No results found"
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Archive Results') {
+            agent { label 'raspi-ats' }
+            steps {
+                dir(WORKSPACE_DIR) {
+                    // Publish JUnit test results
+                    publishTestResults testResultsPattern: "${RESULTS_DIR}/**/*.xml", allowEmptyResults: true
+
+                    // Archive all results
+                    archiveArtifacts artifacts: "${RESULTS_DIR}/**", allowEmptyArchive: true
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ ATS tests completed successfully on Raspberry Pi"
+        }
+        failure {
+            echo "❌ ATS tests failed on Raspberry Pi"
+        }
+        always {
+            node('raspi-ats') {
+                dir(WORKSPACE_DIR) {
+                    archiveArtifacts artifacts: "${RESULTS_DIR}/**", allowEmptyArchive: true
+                }
+            }
+        }
+    }
+}
+
