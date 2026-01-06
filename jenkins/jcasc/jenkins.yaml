@@ -46,8 +46,7 @@ jobs:
             scm {
               git {
                 remote {
-                  // TODO: Update with your actual Git repo URL
-                  url('https://github.com/PicoPiece/ats-fw-esp32-demo.git')
+                  url('git@github.com:PicoPiece/ats-fw-esp32-demo.git')
                   credentials('')
                 }
                 branches('*/main')
@@ -72,8 +71,7 @@ jobs:
             scm {
               git {
                 remote {
-                  // TODO: Update with your actual Git repo URL
-                  url('https://github.com/your-org/ats-fw-esp32-demo.git')
+                  url('git@github.com:PicoPiece/ats-fw-esp32-demo.git')
                   credentials('')
                 }
                 branches('*/main')
@@ -83,10 +81,11 @@ jobs:
           }
         }
         parameters {
-          stringParam('BUILD_JOB_NAME', 'platforms/ESP32/ats-fw-esp32-demo', 'Name of the build job (with folder path)')
+          stringParam('BUILD_JOB_NAME', 'platforms/ESP32/ats-fw-esp32-demo', 'Name of the build job that produced the firmware (with folder path)')
           stringParam('BUILD_NUMBER', '', 'Build number of the firmware to test')
-          stringParam('FW_ARTIFACT', 'firmware-esp32.bin', 'Firmware artifact name')
-          stringParam('PLATFORM', 'ESP32', 'Platform name (ESP32, RaspberryPi, nRF52, ...)')
-          stringParam('ATS_NODE_LABEL', 'ats-node', 'Label for ATS node pool (e.g., ats-node, ats-pi-01)')
+          stringParam('ATS_NODE_LABEL', 'ats-node', 'Label for ATS node pool (e.g., ats-node, raspi-ats)')
+          stringParam('ATS_NODE_TEST_IMAGE', 'ats-node-test:latest', 'Docker image name for ATS node test container')
+          stringParam('TEST_REPO_URL', 'https://github.com/PicoPiece/ats-test-esp32-demo.git', 'Git URL of the test framework repository')
+          stringParam('TEST_REPO_BRANCH', 'main', 'Branch of the test framework repository to use')
         }
       }
