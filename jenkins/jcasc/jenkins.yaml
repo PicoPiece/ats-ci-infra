@@ -86,6 +86,7 @@ jobs:
           stringParam('ATS_NODE_LABEL', 'ats-node', 'Label for ATS node pool (e.g., ats-node, raspi-ats)')
           choiceParam('IMAGE_SOURCE', ['registry', 'build'], 'How to get ats-node-test image: pull from registry or build on agent')
           stringParam('ATS_NODE_TEST_IMAGE', 'ghcr.io/picopiece/ats-node-test:latest', 'Docker image name for ATS node test container (must be lowercase for registry)')
+          stringParam('GHCR_CREDENTIALS_ID', '', 'Jenkins credentials ID for GHCR (leave empty if image is public)')
           stringParam('TEST_REPO_URL', 'https://github.com/PicoPiece/ats-test-esp32-demo.git', 'Git URL of the test framework repository')
           stringParam('TEST_REPO_BRANCH', 'main', 'Branch of the test framework repository to use')
         }
