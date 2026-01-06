@@ -62,7 +62,7 @@ Trên Raspberry Pi, chạy lệnh sau:
 docker run -d --restart unless-stopped \
   --name jenkins-agent-raspi-ats-01 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /home/pi/agent:/home/agent \
+  -v /home/jenkins:/home/jenkins/agent \
   -e JENKINS_URL="https://jenkins.example.com" \
   -e JENKINS_AGENT_NAME="raspi-ats-01" \
   -e JENKINS_SECRET="YOUR_SECRET_HERE" \
@@ -115,7 +115,7 @@ Sử dụng script `start-agent.sh` hoặc chạy trực tiếp:
 docker run -d --restart unless-stopped \
   --name jenkins-agent-raspi-ats-01 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /home/pi/agent:/home/agent \
+  -v /home/jenkins:/home/jenkins/agent \
   -v /dev:/dev \
   -v /sys/class/gpio:/sys/class/gpio:ro \
   -v /dev/gpiomem:/dev/gpiomem \
@@ -252,7 +252,7 @@ mkdir -p /home/pi/agent
 docker run -d --restart unless-stopped \
   --name jenkins-agent-${AGENT_NAME} \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /home/pi/agent:/home/agent \
+  -v /home/jenkins:/home/jenkins/agent \
   -v /dev:/dev \
   -v /sys/class/gpio:/sys/class/gpio:ro \
   -v /dev/gpiomem:/dev/gpiomem \
