@@ -84,7 +84,8 @@ jobs:
           stringParam('BUILD_JOB_NAME', 'platforms/ESP32/ats-fw-esp32-demo', 'Name of the build job that produced the firmware (with folder path)')
           stringParam('BUILD_NUMBER', '', 'Build number of the firmware to test')
           stringParam('ATS_NODE_LABEL', 'ats-node', 'Label for ATS node pool (e.g., ats-node, raspi-ats)')
-          stringParam('ATS_NODE_TEST_IMAGE', 'ats-node-test:latest', 'Docker image name for ATS node test container')
+          choiceParam('IMAGE_SOURCE', ['registry', 'build'], 'How to get ats-node-test image: pull from registry or build on agent')
+          stringParam('ATS_NODE_TEST_IMAGE', 'ghcr.io/picopiece/ats-node-test:latest', 'Docker image name for ATS node test container (must be lowercase for registry)')
           stringParam('TEST_REPO_URL', 'https://github.com/PicoPiece/ats-test-esp32-demo.git', 'Git URL of the test framework repository')
           stringParam('TEST_REPO_BRANCH', 'main', 'Branch of the test framework repository to use')
         }
