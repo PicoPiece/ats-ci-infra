@@ -5,8 +5,8 @@ Quản lý Jenkins jobs và folders bằng YAML. **Restart Jenkins để apply c
 ## Cách hoạt động
 
 1. Edit file `jenkins.yaml` → define folders và jobs
-2. Restart Jenkins → config tự động được apply
-3. Jobs và folders được tạo/update tự động
+2. Sync config to container (tự động hoặc manual)
+3. Reload JCasC config → jobs được update tự động
 
 ## Setup
 
@@ -29,10 +29,26 @@ cd ats-ci-infra
 
 Edit `jenkins.yaml` và thay `https://github.com/your-org/ats-fw-esp32-demo.git` bằng URL thực tế của bạn.
 
-Hoặc sau khi jobs được tạo, có thể update Git URL từ Jenkins UI.
+**Lưu ý:** Volume mount không còn read-only, nên file trong container sẽ tự động sync với file local khi container restart.
 
-### 3. Restart Jenkins
+### 3. Sync Config và Reload
 
+**Option 1: Auto sync (recommended)**
+```bash
+cd ats-ci-infra
+./jenkins/jcasc/sync-config.sh --restart
+```
+
+**Option 2: Manual sync**
+```bash
+# Copy config to container
+./jenkins/jcasc/sync-config.sh
+
+# Then reload in Jenkins UI:
+# Manage Jenkins → Configuration as Code → Reload existing configuration
+```
+
+**Option 3: Restart container (auto sync)**
 ```bash
 cd ats-ci-infra
 docker compose restart jenkins
@@ -64,23 +80,47 @@ File `jenkins.yaml` define:
      // job definition
    }
    ```
-3. Restart Jenkins: `docker compose restart jenkins`
+3. Sync và reload:
+   ```bash
+   ./jenkins/jcasc/sync-config.sh --restart
+   ```
 
 ## Workflow
 
 ```
-Edit jenkins.yaml
+Edit jenkins.yaml (local)
     ↓
-Restart Jenkins (docker compose restart jenkins)
+Sync to container (sync-config.sh)
     ↓
-JCasC tự động load config
+Restart Jenkins or Reload JCasC
     ↓
 Folders và Jobs được tạo/update
 ```
 
+## Helper Scripts
+
+### sync-config.sh
+
+Sync `jenkins.yaml` to container và reload config.
+
+```bash
+# Sync only (no reload)
+./jenkins/jcasc/sync-config.sh
+
+# Sync with reload instructions
+./jenkins/jcasc/sync-config.sh --reload
+
+# Sync and restart Jenkins
+./jenkins/jcasc/sync-config.sh --restart
+```
+
+### fix-test-job.sh
+
+Helper script để fix test job configuration issues.
+
 ## Lưu ý
 
-- ✅ **Restart Jenkins = Auto update** - Không cần làm gì thêm
+- ✅ **Volume mount** - File tự động sync khi container restart (không còn read-only)
 - ✅ **Version control** - File YAML có thể commit vào Git
 - ✅ **Reproducible** - Dễ recreate Jenkins environment
 - ⚠️ **Git URL** - Cần update trong `jenkins.yaml` hoặc Jenkins UI
@@ -98,5 +138,13 @@ Folders và Jobs được tạo/update
 - Check Job DSL script có đúng syntax không
 
 ### Git URL không đúng
-- Update trong `jenkins.yaml` hoặc
-- Vào job → Configure → update Git URL
+- Update trong `jenkins.yaml`
+- Sync config: `./jenkins/jcasc/sync-config.sh --restart`
+- Hoặc vào job → Configure → update Git URL manually
+
+### Config không update sau khi sửa file
+- Sync config: `./jenkins/jcasc/sync-config.sh --restart`
+- Hoặc restart Jenkins: `docker compose restart jenkins`
+- Reload JCasC: Jenkins UI → Configuration as Code → Reload
+
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more details.

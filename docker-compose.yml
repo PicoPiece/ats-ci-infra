@@ -11,7 +11,7 @@ services:
       - "50000:50000"
     volumes:
       - ./jenkins/jenkins_home:/var/jenkins_home
-      - ./jenkins/jcasc:/var/jenkins_home/casc:ro
+      - ./jenkins/jcasc:/var/jenkins_home/casc
     environment:
       - CASC_JENKINS_CONFIG=/var/jenkins_home/casc/jenkins.yaml
     networks:
