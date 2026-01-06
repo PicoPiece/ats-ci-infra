@@ -63,11 +63,28 @@ if ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^jenkins/inbou
   docker pull jenkins/inbound-agent:latest
 fi
 
+# Detect Docker binary location
+DOCKER_BIN=$(which docker || echo "/usr/bin/docker")
+if [ ! -f "$DOCKER_BIN" ]; then
+    echo "⚠️  Warning: Docker binary not found at $DOCKER_BIN"
+    echo "   Container may not be able to run Docker commands"
+fi
+
+# Detect Docker group GID for permission to access docker.sock
+DOCKER_GID=$(getent group docker | cut -d: -f3 || echo "")
+DOCKER_GROUP_ADD=""
+if [ -n "$DOCKER_GID" ]; then
+    DOCKER_GROUP_ADD="--group-add ${DOCKER_GID}"
+    echo "📦 Docker group GID: ${DOCKER_GID}"
+fi
+
 # Run Jenkins agent container
 echo "🐳 Starting Jenkins agent container..."
 docker run -d --restart unless-stopped \
   --name "${CONTAINER_NAME}" \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${DOCKER_BIN}:/usr/bin/docker:ro" \
+  ${DOCKER_GROUP_ADD} \
   -v "${WORKSPACE_DIR}:/home/agent" \
   -v /dev:/dev \
   -v /sys/class/gpio:/sys/class/gpio:ro \
