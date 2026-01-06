@@ -25,7 +25,8 @@ if [ -z "$AGENT_SECRET" ]; then
 fi
 
 CONTAINER_NAME="jenkins-agent-${AGENT_NAME}"
-WORKSPACE_DIR="/home/pi/agent"
+# Use current user's home directory for workspace, or allow override via JENKINS_WORKSPACE env var
+WORKSPACE_DIR="${JENKINS_WORKSPACE:-${HOME}/agent}"
 
 echo "🚀 Starting Jenkins Agent"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
