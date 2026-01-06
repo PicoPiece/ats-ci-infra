@@ -66,6 +66,10 @@ jobs:
       pipelineJob('platforms/ESP32/ats-fw-esp32-demo-ESP32-test') {
         displayName('ESP32 Firmware Test')
         description('Test ESP32 firmware on ATS node')
+        // Overwrite existing job to force update
+        configure { project ->
+          project.remove(project / 'definition')
+        }
         definition {
           cpsScm {
             scm {
