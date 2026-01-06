@@ -46,7 +46,7 @@ jobs:
             scm {
               git {
                 remote {
-                  url('git@github.com:PicoPiece/ats-fw-esp32-demo.git')
+                  url('https://github.com/PicoPiece/ats-fw-esp32-demo.git')
                   credentials('')
                 }
                 branches('*/main')
@@ -71,7 +71,7 @@ jobs:
             scm {
               git {
                 remote {
-                  url('git@github.com:PicoPiece/ats-fw-esp32-demo.git')
+                  url('https://github.com/PicoPiece/ats-fw-esp32-demo.git')
                   credentials('')
                 }
                 branches('*/main')
