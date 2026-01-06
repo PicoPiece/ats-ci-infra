@@ -99,9 +99,107 @@ To avoid this issue in the future:
 3. **Test config changes** in a test Jenkins instance first
 4. **Version control** `jenkins.yaml` to track changes
 
+## Issue: SSH Host Key Verification Failed
+
+### Symptoms
+- Error: `Host key verification failed`
+- Error: `Could not read from remote repository`
+- Jenkins cannot clone from GitHub using SSH URLs
+
+### Root Cause
+Jenkins container doesn't have SSH keys configured or GitHub host key not in known_hosts.
+
+### Solutions
+
+#### Solution 1: Copy Existing SSH Key (Recommended)
+
+If you already have an SSH key that's added to GitHub:
+
+```bash
+# Copy your SSH key to Jenkins container
+docker cp ~/.ssh/id_rsa jenkins-master:/var/jenkins_home/.ssh/id_rsa
+docker cp ~/.ssh/id_rsa.pub jenkins-master:/var/jenkins_home/.ssh/id_rsa.pub
+
+# Set correct permissions
+docker exec jenkins-master chown -R jenkins:jenkins /var/jenkins_home/.ssh
+docker exec jenkins-master chmod 600 /var/jenkins_home/.ssh/id_rsa
+docker exec jenkins-master chmod 644 /var/jenkins_home/.ssh/id_rsa.pub
+
+# Add GitHub to known_hosts
+docker exec jenkins-master bash -c "ssh-keyscan github.com >> /var/jenkins_home/.ssh/known_hosts"
+docker exec jenkins-master chown jenkins:jenkins /var/jenkins_home/.ssh/known_hosts
+```
+
+#### Solution 2: Generate New SSH Key
+
+```bash
+# Generate new SSH key in Jenkins container
+docker exec -u jenkins jenkins-master ssh-keygen -t ed25519 -C 'jenkins@ats-ci' -f /var/jenkins_home/.ssh/id_ed25519 -N ''
+
+# Display public key
+docker exec jenkins-master cat /var/jenkins_home/.ssh/id_ed25519.pub
+```
+
+Then:
+1. Copy the public key output
+2. Go to GitHub: **Settings** → **SSH and GPG keys** → **New SSH key**
+3. Paste the public key and save
+
+#### Solution 3: Use HTTPS with GitHub Token (Alternative)
+
+If SSH setup is too complex, use HTTPS with GitHub Personal Access Token:
+
+1. **Generate GitHub token:**
+   - GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+   - Generate new token with `repo` scope
+
+2. **Add credentials in Jenkins:**
+   - Jenkins UI → **Manage Jenkins** → **Credentials** → **System** → **Global credentials**
+   - Add new credential:
+     - Kind: `Username with password`
+     - Username: `your-github-username`
+     - Password: `your-github-token`
+     - ID: `github-token`
+
+3. **Update jenkins.yaml:**
+   ```yaml
+   git {
+     remote {
+       url('https://github.com/PicoPiece/ats-fw-esp32-demo.git')
+       credentials('github-token')  # Use credential ID
+     }
+   }
+   ```
+
+4. **Restart Jenkins:**
+   ```bash
+   docker compose restart jenkins
+   ```
+
+### Verification
+
+Test SSH connection:
+```bash
+docker exec -u jenkins jenkins-master ssh -T git@github.com
+```
+
+Expected output:
+```
+Hi PicoPiece! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+### Helper Script
+
+Use the setup script:
+```bash
+cd ats-ci-infra
+./jenkins/jcasc/setup-ssh.sh
+```
+
 ### Related Files
 
 - `jenkins/jcasc/jenkins.yaml` - Main configuration file
 - `jenkins/jcasc/README.md` - Setup guide
 - `jenkins/jcasc/fix-test-job.sh` - Helper script
+- `jenkins/jcasc/setup-ssh.sh` - SSH setup script
 
