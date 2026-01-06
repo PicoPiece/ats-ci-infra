@@ -241,6 +241,25 @@ ATS nodes connect to this infrastructure by:
 - Do not host CI services
 - Execute only hardware-dependent tasks
 
+### Setting Up Raspberry Pi Agents
+
+See [provision/raspi-agent/README.md](provision/raspi-agent/README.md) for detailed instructions on:
+
+- Creating Jenkins agent nodes
+- Running Jenkins agent containers on Raspberry Pi
+- Configuring labels and workspace
+- Troubleshooting connection issues
+
+**Quick start:**
+```bash
+./provision/raspi-agent/start-agent.sh \
+  https://jenkins.example.com \
+  raspi-ats-01 \
+  YOUR_SECRET_HERE
+```
+
+**Example pipeline:** See [provision/raspi-agent/Jenkinsfile.example](provision/raspi-agent/Jenkinsfile.example) for a complete test pipeline that runs on Pi agents.
+
 ---
 
 ## 📊 Observability Strategy
