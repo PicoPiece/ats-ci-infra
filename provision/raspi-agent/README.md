@@ -127,7 +127,7 @@ docker run -d --restart unless-stopped \
 
 **Volume mounts giải thích:**
 - `/var/run/docker.sock`: Cho phép agent chạy Docker containers
-- `/home/pi/agent`: Workspace cho Jenkins jobs
+- `/home/jenkins`: Workspace cho Jenkins jobs (mounted vào container)
 - `/dev`, `/sys/class/gpio`, `/dev/gpiomem`: Hardware access cho ESP32 testing
 
 ### 4. Verify Agent Connection
@@ -213,7 +213,7 @@ docker logs jenkins-agent-raspi-ats-01
 
 **Check:**
 - Docker socket permission: `ls -l /var/run/docker.sock`
-- Workspace permission: `ls -ld /home/pi/agent`
+- Workspace permission: `ls -ld /home/jenkins`
 - Hardware access: `ls -l /dev/ttyUSB*`
 
 ### Container không có quyền access hardware
@@ -246,7 +246,8 @@ docker stop jenkins-agent-${AGENT_NAME} 2>/dev/null || true
 docker rm jenkins-agent-${AGENT_NAME} 2>/dev/null || true
 
 # Create workspace directory
-mkdir -p /home/pi/agent
+mkdir -p /home/jenkins
+sudo chown -R 1000:1000 /home/jenkins
 
 # Run Jenkins agent
 docker run -d --restart unless-stopped \
