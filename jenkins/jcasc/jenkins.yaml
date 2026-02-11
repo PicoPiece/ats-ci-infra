@@ -37,6 +37,38 @@ jobs:
         description('nRF52 firmware build and test pipelines')
       }
       
+      folder('ats-node') {
+        displayName('ATS Node')
+        description('ATS node container image build (runs on commit to ats-ats-node)')
+      }
+      
+      // ATS Node Test Image — build & push on commit to ats-ats-node
+      pipelineJob('ats-node/ats-node-test-image') {
+        displayName('ATS Node Test Image')
+        description('Build and push ats-node-test Docker image to GHCR. Triggered by commits to ats-ats-node.')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/PicoPiece/ats-ats-node.git')
+                  credentials('')
+                }
+                branches('*/main')
+                scriptPath('Jenkinsfile')
+              }
+            }
+          }
+        }
+        triggers {
+          scm('H/5 * * * *')
+        }
+        parameters {
+          stringParam('IMAGE', 'ghcr.io/picopiece/ats-node-test:latest', 'Full image name (registry/owner/name:tag)')
+          stringParam('GHCR_CREDENTIALS_ID', '', 'Jenkins credentials ID for GHCR (required for push). Leave empty to skip push.')
+        }
+      }
+      
       // ESP32 Build Job
       pipelineJob('platforms/ESP32/ats-fw-esp32-demo') {
         displayName('ESP32 Firmware Build')
