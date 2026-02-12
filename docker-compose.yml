@@ -21,6 +21,8 @@ services:
     image: ats-fw-build:esp32
     container_name: jenkins-build-agent
     restart: unless-stopped
+    group_add:
+      - "999"
     depends_on:
       - jenkins
     env_file:
@@ -29,6 +31,24 @@ services:
       - JENKINS_URL=http://jenkins:8080
       - JENKINS_AGENT_NAME=fw-build
       - JENKINS_SECRET=${JENKINS_SECRET}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ats-net
+
+  # Metrics exporter: exposes test results for Prometheus scraping
+  metrics-exporter:
+    image: python:3.11-slim
+    container_name: ats-metrics-exporter
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../ats-test-esp32-demo/agent/metrics_exporter.py:/app/metrics_exporter.py:ro
+      - metrics_reports:/app/reports
+    environment:
+      - METRICS_PORT=8080
+      - METRICS_FILE=/app/reports/metrics.json
+    command: ["python3", "/app/metrics_exporter.py"]
     networks:
       - ats-net
 
@@ -36,6 +56,8 @@ services:
     image: prom/prometheus
     container_name: prometheus
     restart: unless-stopped
+    depends_on:
+      - metrics-exporter
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -69,6 +91,7 @@ services:
 volumes:
   prometheus_data:
   grafana_data:
+  metrics_reports:
 
 networks:
   ats-net:

@@ -12,31 +12,20 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   # ATS Node Metrics
-  # These targets should be the IP addresses or hostnames of ATS nodes (Raspberry Pi)
-  # Each ATS node runs the metrics exporter on port 8080 (configurable via METRICS_PORT)
-  # The metrics exporter is started automatically by run_tests.sh
+  # Each ATS node runs the metrics exporter (configurable via METRICS_PORT)
+  # For production: replace targets with actual Raspberry Pi IPs
+  # For local dev/testing: use host IP with the configured METRICS_PORT
   - job_name: 'ats-nodes'
-    scrape_interval: 30s
+    scrape_interval: 15s
     metrics_path: '/metrics'
     static_configs:
-      # Example: Replace with actual ATS node IPs/hostnames
-      # For local development/testing, you can use:
-      # - targets: ['host.docker.internal:8080']  # If ATS node is on host machine
-      # - targets: ['192.168.1.100:8080']        # Example ATS node IP
-      # - targets: ['ats-node-1.local:8080']      # Example ATS node hostname
-      - targets: ['ats-node-1:8080']
+      # metrics-exporter container on ats-net Docker network
+      - targets: ['metrics-exporter:8080']
         labels:
-          node: 'ats-node-1'
-          platform: 'raspberry-pi'
-      - targets: ['ats-node-2:8080']
+          node: 'local-dev'
+          platform: 'linux'
+      # Raspberry Pi ATS node (thait@192.168.1.40)
+      - targets: ['192.168.1.40:8080']
         labels:
-          node: 'ats-node-2'
+          node: 'ats-node-rpi'
           platform: 'raspberry-pi'
-    # Optional: Add relabeling for better metric organization
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: localhost:9090

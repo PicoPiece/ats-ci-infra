@@ -5,7 +5,7 @@ USER root
 ENV DEBIAN_FRONTEND=noninteractive
 ENV IDF_PATH=/opt/esp/idf
 
-# Install dependencies
+# Install dependencies (incl. Docker CLI for ats-node-test-image job)
 RUN apt-get update && apt-get install -y \
     git \
     wget \
@@ -23,7 +23,8 @@ RUN apt-get update && apt-get install -y \
     flex \
     bison \
     gperf \
-    && rm -rf /var/lib/apt/lists/*\
+    docker.io \
+    && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/python3 /usr/bin/python
 
 # Install ESP-IDF
@@ -48,6 +49,9 @@ ENV PATH="/opt/esp/idf/tools:$PATH"
 # Add ESP-IDF to bashrc for jenkins user
 RUN echo 'source /opt/esp/idf/export.sh' >> /home/jenkins/.bashrc && \
     echo 'export IDF_PATH=/opt/esp/idf' >> /home/jenkins/.bashrc
+
+# Docker group (GID 999) so jenkins can use host docker.sock when container runs with group_add
+RUN groupadd -g 999 docker 2>/dev/null || true && usermod -aG docker jenkins
 
 # Switch to jenkins user and configure git
 USER jenkins
